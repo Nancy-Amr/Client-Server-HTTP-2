@@ -99,7 +99,7 @@ def handle_client(client_socket, address, username=None):
 # Handle GET and POST requests
 def handle_get(path):
     if path == "/":
-        path = "/index.html"
+        path = "/page_updated.html"
 
     file_path = os.path.join(ROOT_DIR, path.lstrip("/"))
 
