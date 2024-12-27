@@ -22,7 +22,6 @@ def handle_client(client_socket, address, username=None):
     """
     print(f"[INFO] New connection from {address} (Authenticated as {username})")
 
-    # Loop to handle multiple requests over the same connection
     while True:
         # Receive the HTTP/1.1 request (read until we encounter an empty line or timeout)
         client_socket.settimeout(30)  # Set timeout for each request (10 seconds)
@@ -31,8 +30,9 @@ def handle_client(client_socket, address, username=None):
             if not request:
                 break  # Close connection if no data received (client disconnected)
         except socket.timeout:
-            print("[INFO] Connection timeout")
-            break
+            print("[INFO] Connection timed out. Closing the current connection and waiting for a new one.")
+            client_socket.close()  # Close the current connection
+            return  # Exit the current client handler, and the main loop will accept a new connection
 
         if not request:
             break
@@ -69,6 +69,7 @@ def handle_client(client_socket, address, username=None):
 
     # Close connection after the client disconnects or timeout
     client_socket.close()
+
 
 def handle_get(path):
     """
