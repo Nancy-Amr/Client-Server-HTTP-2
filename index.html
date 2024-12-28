@@ -1,12 +1,131 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HTTP Server</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .content {
+            margin-top: 20px;
+        }
+        .method-link {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f1f1f1;
+            display: inline-block;
+            width: 200px;
+            text-align: center;
+            text-decoration: none;
+            color: #007bff;
+            border-radius: 5px;
+        }
+        .method-link:hover {
+            background-color: #ddd;
+        }
+        .method-link:active {
+            background-color: #bbb;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to the HTTP Server!</h1>
-    <p>This page is served from a Python server running on your local machine.</p>
+
+    <h1>Welcome to the HTTP Server</h1>
+    <p>This is a simple HTTP server that supports various HTTP methods. Use the links below to simulate different requests.</p>
+    <img src="image.png" alt="Server Image" style="max-width: 100%; height: auto;">
+    
+    <div class="content">
+        <a href="/submit" class="method-link" id="get-link">GET /submit</a><br>
+        <a href="#" class="method-link" id="post-link">POST /submit</a><br>
+        <a href="#" class="method-link" id="put-link">PUT /resource</a><br>
+        <a href="#" class="method-link" id="delete-link">DELETE /resource</a><br>
+        <a href="#" class="method-link" id="patch-link">PATCH /resource</a><br>
+        <a href="#" class="method-link" id="head-link">HEAD /submit</a><br>
+        <a href="#" class="method-link" id="options-link">OPTIONS /submit</a><br>
+    </div>
+
+    <script>
+        // Handling GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS with JS
+        document.getElementById('get-link').addEventListener('click', function(event) {
+            event.preventDefault();
+            fetch('/submit')
+                .then(response => response.text())
+                .then(data => alert('GET Response:\n' + data));
+        });
+
+        document.getElementById('post-link').addEventListener('click', function(event) {
+            event.preventDefault();
+            fetch('/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'data=This+is+a+POST+request'
+            })
+            .then(response => response.text())
+            .then(data => alert('POST Response:\n' + data));
+        });
+
+        document.getElementById('put-link').addEventListener('click', function(event) {
+            event.preventDefault();
+            fetch('/resource', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ "data": "New data for resource" })
+            })
+            .then(response => response.text())
+            .then(data => alert('PUT Response:\n' + data));
+        });
+
+        document.getElementById('delete-link').addEventListener('click', function(event) {
+            event.preventDefault();
+            fetch('/resource', { method: 'DELETE' })
+            .then(response => response.text())
+            .then(data => alert('DELETE Response:\n' + data));
+        });
+
+        document.getElementById('patch-link').addEventListener('click', function(event) {
+            event.preventDefault();
+            fetch('/resource', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ "data": "Updated data for resource" })
+            })
+            .then(response => response.text())
+            .then(data => alert('PATCH Response:\n' + data));
+        });
+
+        document.getElementById('head-link').addEventListener('click', function(event) {
+            event.preventDefault();
+            fetch('/submit', { method: 'HEAD' })
+            .then(response => response.headers)
+            .then(headers => {
+                let headerText = '';
+                for (let pair of headers.entries()) {
+                    headerText += `${pair[0]}: ${pair[1]}\n`;
+                }
+                alert('HEAD Response Headers:\n' + headerText);
+            });
+        });
+
+        document.getElementById('options-link').addEventListener('click', function(event) {
+            event.preventDefault();
+            fetch('/submit', { method: 'OPTIONS' })
+            .then(response => response.text())
+            .then(data => alert('OPTIONS Response:\n' + data));
+        });
+    </script>
+
 </body>
-</html>
+</html> 
