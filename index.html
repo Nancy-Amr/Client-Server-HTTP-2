@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -33,6 +32,13 @@
         .method-link:active {
             background-color: #bbb;
         }
+        #request-container, #upload-container, #delete-container {
+            margin-top: 20px;
+        }
+        #request-body, #file-input, #delete-input {
+            width: 100%;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -51,8 +57,32 @@
         <a href="#" class="method-link" id="options-link">OPTIONS /submit</a><br>
     </div>
 
+    <!-- Section for Uploading a File -->
+    <div id="upload-container">
+        <h3>Upload a File (PUT)</h3>
+        <input type="file" id="file-input">
+        <button id="upload-file">Upload File</button>
+        <div id="upload-response" style="margin-top: 10px; white-space: pre-wrap;"></div>
+    </div>
+
+    <!-- Section for Deleting a File -->
+    <div id="delete-container">
+        <h3>Delete a File (DELETE)</h3>
+        <input type="text" id="delete-input" placeholder="Enter the filename to delete">
+        <button id="delete-file">Delete File</button>
+        <div id="delete-response" style="margin-top: 10px; white-space: pre-wrap;"></div>
+    </div>
+
+    <!-- Section for Custom Request Body -->
+    <div id="request-container">
+        <h3>Custom Request Body</h3>
+        <textarea id="request-body" placeholder="Enter your request body here"></textarea>
+        <button id="submit-body">Submit</button>
+        <div id="response-content" style="margin-top: 20px; white-space: pre-wrap;"></div>
+    </div>
+
     <script>
-        // Handling GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS with JS
+        // GET, POST, PATCH, HEAD, OPTIONS Logic (existing handlers)
         document.getElementById('get-link').addEventListener('click', function(event) {
             event.preventDefault();
             fetch('/submit')
@@ -73,59 +103,74 @@
             .then(data => alert('POST Response:\n' + data));
         });
 
-        document.getElementById('put-link').addEventListener('click', function(event) {
-            event.preventDefault();
+        // Upload File (PUT Request)
+        document.getElementById('upload-file').addEventListener('click', function() {
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Please select a file to upload.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/upload', {
+                method: 'PUT',
+                body: formData,
+            })
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('upload-response').textContent = `Upload Response:\n${data}`;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('upload-response').textContent = `Error: ${error.message}`;
+            });
+        });
+
+        // Delete File (DELETE Request)
+        document.getElementById('delete-file').addEventListener('click', function() {
+            const filename = document.getElementById('delete-input').value;
+
+            if (!filename) {
+                alert('Please enter the filename to delete.');
+                return;
+            }
+
+            fetch(`/upload/${filename}`, { method: 'DELETE' })
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('delete-response').textContent = `Delete Response:\n${data}`;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('delete-response').textContent = `Error: ${error.message}`;
+            });
+        });
+
+        // Custom PUT Request Body
+        document.getElementById('submit-body').addEventListener('click', function() {
+            const bodyContent = document.getElementById('request-body').value;
+
             fetch('/resource', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ "data": "New data for resource" })
+                body: bodyContent,
             })
             .then(response => response.text())
-            .then(data => alert('PUT Response:\n' + data));
-        });
-
-        document.getElementById('delete-link').addEventListener('click', function(event) {
-            event.preventDefault();
-            fetch('/resource', { method: 'DELETE' })
-            .then(response => response.text())
-            .then(data => alert('DELETE Response:\n' + data));
-        });
-
-        document.getElementById('patch-link').addEventListener('click', function(event) {
-            event.preventDefault();
-            fetch('/resource', {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ "data": "Updated data for resource" })
+            .then(data => {
+                document.getElementById('response-content').textContent = `Response:\n${data}`;
             })
-            .then(response => response.text())
-            .then(data => alert('PATCH Response:\n' + data));
-        });
-
-        document.getElementById('head-link').addEventListener('click', function(event) {
-            event.preventDefault();
-            fetch('/submit', { method: 'HEAD' })
-            .then(response => response.headers)
-            .then(headers => {
-                let headerText = '';
-                for (let pair of headers.entries()) {
-                    headerText += `${pair[0]}: ${pair[1]}\n`;
-                }
-                alert('HEAD Response Headers:\n' + headerText);
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('response-content').textContent = `Error: ${error.message}`;
             });
-        });
-
-        document.getElementById('options-link').addEventListener('click', function(event) {
-            event.preventDefault();
-            fetch('/submit', { method: 'OPTIONS' })
-            .then(response => response.text())
-            .then(data => alert('OPTIONS Response:\n' + data));
         });
     </script>
 
 </body>
-</html> 
+</html>
