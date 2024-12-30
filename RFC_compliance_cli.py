@@ -197,30 +197,28 @@ def handle_post(path, body):
 
 
 def handle_put(path, body):
-    filename_match = re.search(r'filename="(.+?)"', body)
-    if filename_match:
-        filename = filename_match.group(1)
-        file_path = os.path.join(ROOT_DIR, filename)
-    else:
-        file_path = os.path.join(ROOT_DIR, os.path.basename(path))
-
-    # Extract the content after the double CRLF
-    if "\r\n\r\n" in body:
-        file_data = body.split("\r\n\r\n", 1)[-1].rstrip("--")
-    else:
-        file_data = body
-
-    # Save the file in binary mode
+    """Handle PUT requests for file uploads."""
     try:
+        # Extract filename from headers instead of body
+        filename = os.path.basename(path.lstrip("/"))
+        if not filename:
+            filename = "uploaded_file"
+
+        file_path = os.path.join(ROOT_DIR, filename)
+        
+        # Save the file in binary mode
         with open(file_path, "wb") as file:
-            file.write(file_data.encode("utf-8", errors="replace"))
+            file.write(body.encode("utf-8", errors="replace"))
+        
         response_body = f"File uploaded successfully.\nFile Path: {file_path}"
-        headers = HTTP_RESPONSES[201] + f"Content-Length: {len(response_body)}\r\nContent-Type: text/plain\r\n\r\n"
+        headers = HTTP_RESPONSES[200] + f"Content-Length: {len(response_body)}\r\nContent-Type: text/plain\r\n\r\n"
         return headers + response_body
+    
     except Exception as e:
         response_body = f"File upload failed: {e}"
         headers = HTTP_RESPONSES[500] + f"Content-Length: {len(response_body)}\r\nContent-Type: text/plain\r\n\r\n"
         return headers + response_body
+
 
 
 
