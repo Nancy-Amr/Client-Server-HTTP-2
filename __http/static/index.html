@@ -1,0 +1,211 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTTP/2 Server</title>
+</head>
+<body>
+    <h1>Welcome to the HTTP/2 Server!</h1>
+    <p>This page is served from a Python HTTP/2 server running on your local machine.</p>
+    <img src="image.png" alt="Server Image" style="max-width: 100%; height: auto;">
+    
+    <h2>Test POST Request</h2>
+    <form action="/submit" method="post">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required><br><br>
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required><br><br>
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html> -->
+
+<!-- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTTP Server</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .content {
+            margin-top: 20px;
+        }
+        .method-link {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f1f1f1;
+            display: inline-block;
+            width: 200px;
+            text-align: center;
+            text-decoration: none;
+            color: #007bff;
+            border-radius: 5px;
+        }
+        .method-link:hover {
+            background-color: #ddd;
+        }
+        .method-link:active {
+            background-color: #bbb;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Welcome to the HTTP Server</h1>
+    <p>This is a simple HTTP server that supports various HTTP methods. Use the links below to simulate different requests.</p>
+    <img src="image.png" alt="Server Image" style="max-width: 100%; height: auto;">
+    
+    <div class="content">
+        <a href="/submit" class="method-link" id="get-link">GET /submit</a><br>
+        <a href="#" class="method-link" id="post-link">POST /submit</a><br>
+        <a href="#" class="method-link" id="put-link">PUT /resource</a><br>
+        <a href="#" class="method-link" id="delete-link">DELETE /resource</a><br>
+        <a href="#" class="method-link" id="patch-link">PATCH /resource</a><br>
+        <a href="#" class="method-link" id="head-link">HEAD /submit</a><br>
+        <a href="#" class="method-link" id="options-link">OPTIONS /submit</a><br>
+    </div>
+
+    <script>
+        // Handling GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS with JS
+        document.getElementById('get-link').addEventListener('click', function(event) {
+            event.preventDefault();
+            fetch('/submit')
+                .then(response => response.text())
+                .then(data => alert('GET Response:\n' + data));
+        });
+
+        document.getElementById('post-link').addEventListener('click', function(event) {
+            event.preventDefault();
+            fetch('/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'data=This+is+a+POST+request'
+            })
+            .then(response => response.text())
+            .then(data => alert('POST Response:\n' + data));
+        });
+
+        document.getElementById('put-link').addEventListener('click', function(event) {
+            event.preventDefault();
+            fetch('/resource', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ "data": "New data for resource" })
+            })
+            .then(response => response.text())
+            .then(data => alert('PUT Response:\n' + data));
+        });
+
+        document.getElementById('delete-link').addEventListener('click', function(event) {
+            event.preventDefault();
+            fetch('/resource', { method: 'DELETE' })
+            .then(response => response.text())
+            .then(data => alert('DELETE Response:\n' + data));
+        });
+
+        document.getElementById('patch-link').addEventListener('click', function(event) {
+            event.preventDefault();
+            fetch('/resource', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ "data": "Updated data for resource" })
+            })
+            .then(response => response.text())
+            .then(data => alert('PATCH Response:\n' + data));
+        });
+
+        document.getElementById('head-link').addEventListener('click', function(event) {
+            event.preventDefault();
+            fetch('/submit', { method: 'HEAD' })
+            .then(response => response.headers)
+            .then(headers => {
+                let headerText = '';
+                for (let pair of headers.entries()) {
+                    headerText += `${pair[0]}: ${pair[1]}\n`;
+                }
+                alert('HEAD Response Headers:\n' + headerText);
+            });
+        });
+
+        document.getElementById('options-link').addEventListener('click', function(event) {
+            event.preventDefault();
+            fetch('/submit', { method: 'OPTIONS' })
+            .then(response => response.text())
+            .then(data => alert('OPTIONS Response:\n' + data));
+        });
+    </script>
+
+</body>
+</html>  -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTTP Server</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Welcome to the HTTP Server</h1>
+    <p>This is a simple HTTP server that supports various HTTP methods. Use the sections below to test different HTTP methods.</p>
+
+    <div class="content">
+        <h2>Test POST Request</h2>
+        <form action="/submit" method="post">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" required placeholder="Enter your name">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required placeholder="Enter your email">
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+
+    <div id="head-container">
+        <h3>Check Resource Details (HEAD Request)</h3>
+        <input type="text" id="resource-url" placeholder="Enter the resource URL (e.g., /index.html)">
+        <button id="send-head-request">Check Resource</button>
+        <div id="response-headers"></div>
+    </div>
+
+    <div id="upload-container">
+        <h3>Upload a File (PUT)</h3>
+        <input type="file" id="file-input">
+        <button id="upload-file">Upload File</button>
+        <div id="upload-response"></div>
+    </div>
+
+    <div id="delete-container">
+        <h3>Delete a File (DELETE)</h3>
+        <input type="text" id="delete-input" placeholder="Enter the filename to delete">
+        <button id="delete-file">Delete File</button>
+        <div id="delete-response"></div>
+    </div>
+
+    <div id="request-container">
+        <h3>Custom PUT Request Body</h3>
+        <textarea id="request-body" placeholder="Enter your request body here"></textarea>
+        <button id="submit-body">Submit</button>
+        <div id="response-content"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
