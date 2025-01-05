@@ -198,10 +198,6 @@ def handle_client(client_socket, address, username=None):
                 response = handle_delete(path)
             elif method == "HEAD":
                 response = handle_head(path)
-            elif method == "OPTIONS":
-                response = handle_options(path)
-            elif method == "PATCH":
-                response = handle_patch(path, body)
             else:
                 response_body = "Unsupported HTTP Method"
                 headers = HTTP_RESPONSES[405] + f"Content-Length: {len(response_body)}\r\nContent-Type: text/plain\r\n\r\n"
@@ -429,26 +425,6 @@ def handle_head(path):
     return headers
 
 
-def handle_options(path):
-    """Handle OPTIONS requests (return supported methods)."""
-    methods = "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH"
-    response_body = f"Supported methods: {methods}"
-    headers = HTTP_RESPONSES[200] + f"Content-Length: {len(response_body)}\r\nContent-Type: text/plain\r\n\r\n"
-    return headers + response_body
-
-def handle_patch(path, body):
-    """Handle PATCH requests."""
-    file_path = os.path.join(ROOT_DIR, path.lstrip("/"))
-    if os.path.exists(file_path):
-        with open(file_path, "a") as file:  # Patch typically appends data
-            file.write(body)
-        response_body = "Resource patched"
-        headers = HTTP_RESPONSES[200] + f"Content-Length: {len(response_body)}\r\nContent-Type: text/plain\r\n\r\n"
-        return headers + response_body
-    else:
-        response_body = "Resource not found"
-        headers = HTTP_RESPONSES[404] + f"Content-Length: {len(response_body)}\r\nContent-Type: text/plain\r\n\r\n"
-        return headers + response_body
 
 # Client-side simulation
 def authenticate_to_server(auth_host, auth_port):
