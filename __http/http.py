@@ -3,7 +3,8 @@ import threading
 import os
 import hashlib
 import re
-import webbrowser
+from hpack import Encoder, Decoder
+
 
 
 # Constants
@@ -17,6 +18,53 @@ HTTP_RESPONSES = {
 
 ROOT_DIR = "./static"
 USER_CREDENTIALS = {"user1": "password123", "user2": "pass456"}
+
+# Create HPACK encoder and decoder instances
+hpack_encoder = Encoder()
+hpack_decoder = Decoder()
+
+def compress_headers(headers_dict):
+    """
+    Compress headers using HPACK.
+    :param headers_dict: Dictionary of HTTP headers.
+    :return: Compressed binary representation of headers.
+    """
+    headers_list = [(key, value) for key, value in headers_dict.items()]
+    return hpack_encoder.encode(headers_list)
+
+def decompress_headers(encoded_headers):
+    """
+    Decompress headers using HPACK.
+    :param encoded_headers: Compressed binary headers.
+    :return: Dictionary of decompressed headers.
+    """
+    headers = hpack_decoder.decode(encoded_headers)
+    return {key.decode(): value.decode() for key, value in headers}
+
+# Example usage
+def handle_client_with_hpack(client_socket):
+    try:
+        # Receive and decode headers
+        request = client_socket.recv(4096)
+        decompressed_headers = decompress_headers(request)
+        print("[DECOMPRESSED HEADERS]:", decompressed_headers)
+
+        # Prepare a response
+        headers = {
+            ":status": "200",
+            "content-type": "text/plain",
+            "content-length": "12",
+        }
+        compressed_response_headers = compress_headers(headers)
+
+        # Send compressed response headers followed by the body
+        client_socket.send(compressed_response_headers + b"Hello World!")
+    except Exception as e:
+        print("[ERROR] HPACK handling failed:", e)
+    finally:
+        client_socket.close()
+
+
 
 # Authentication logic
 def authenticate_user(client_socket):
