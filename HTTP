@@ -315,15 +315,33 @@ def handle_delete(path):
 
 
 def handle_head(path):
+    """
+    Handles HTTP HEAD requests and returns only the headers for the requested resource.
+    """
+    if path == "/":
+        path = "/index.html"  # Default to index.html if the path is root
+
     file_path = os.path.join(ROOT_DIR, path.lstrip("/"))
-    if os.path.exists(file_path):
-        content = open(file_path, "r").read()
-        headers = HTTP_RESPONSES[200] + f"Content-Length: {len(content)}\r\nContent-Type: text/html\r\n\r\n"
-        return headers
+
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        content_length = os.path.getsize(file_path)
+        content_type = "text/html" if file_path.endswith(".html") else "text/plain"
+
+        headers = (
+            HTTP_RESPONSES[200]
+            + f"Content-Length: {content_length}\r\n"
+            + f"Content-Type: {content_type}\r\n\r\n"
+        )
     else:
-        response_body = "404 Not Found"
-        headers = HTTP_RESPONSES[404] + f"Content-Length: {len(response_body)}\r\nContent-Type: text/plain\r\n\r\n"
-        return headers
+        # Handle file not found
+        headers = (
+            HTTP_RESPONSES[404]
+            + f"Content-Length: 0\r\n"
+            + "Content-Type: text/plain\r\n\r\n"
+        )
+
+    return headers
+
 
 def handle_options(path):
     """Handle OPTIONS requests (return supported methods)."""
