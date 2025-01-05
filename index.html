@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -48,13 +49,14 @@
     <img src="image.png" alt="Server Image" style="max-width: 100%; height: auto;">
     
     <div class="content">
-        <a href="/submit" class="method-link" id="get-link">GET /submit</a><br>
-        <a href="#" class="method-link" id="post-link">POST /submit</a><br>
-        <a href="#" class="method-link" id="put-link">PUT /resource</a><br>
-        <a href="#" class="method-link" id="delete-link">DELETE /resource</a><br>
-        <a href="#" class="method-link" id="patch-link">PATCH /resource</a><br>
-        <a href="#" class="method-link" id="head-link">HEAD /submit</a><br>
-        <a href="#" class="method-link" id="options-link">OPTIONS /submit</a><br>
+        <h2>Test POST Request</h2>
+        <form action="/submit" method="post">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" required><br><br>
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required><br><br>
+            <button type="submit">Submit</button>
+        </form>
     </div>
 
     <!-- Section for Uploading a File -->
@@ -82,47 +84,30 @@
     </div>
 
     <script>
-        // GET, POST, PATCH, HEAD, OPTIONS Logic (existing handlers)
-        document.getElementById('get-link').addEventListener('click', function(event) {
-            event.preventDefault();
-            fetch('/submit')
-                .then(response => response.text())
-                .then(data => alert('GET Response:\n' + data));
-        });
-
-        document.getElementById('post-link').addEventListener('click', function(event) {
-            event.preventDefault();
-            fetch('/submit', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'data=This+is+a+POST+request'
-            })
-            .then(response => response.text())
-            .then(data => alert('POST Response:\n' + data));
-        });
-
         // Upload File (PUT Request)
         document.getElementById('upload-file').addEventListener('click', function() {
             const fileInput = document.getElementById('file-input');
             const file = fileInput.files[0];
-
+        
             if (!file) {
                 alert('Please select a file to upload.');
                 return;
             }
-
+        
+            // Get the file name
+            const fileName = file.name;
+        
             const formData = new FormData();
             formData.append('file', file);
-
-            fetch('/upload', {
+        
+            fetch(`/upload/${fileName}`, {
                 method: 'PUT',
                 body: formData,
             })
             .then(response => response.text())
             .then(data => {
-                document.getElementById('upload-response').textContent = `Upload Response:\n${data}`;
+            const fileInput = document.getElementById('file-input');
+                document.getElementById('upload-response').textContent = `File "${fileName}" uploaded successfully.\nResponse: ${data}`;
             })
             .catch(error => {
                 console.error('Error:', error);
