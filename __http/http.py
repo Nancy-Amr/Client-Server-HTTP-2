@@ -163,7 +163,7 @@ def handle_client(client_socket, address, username=None):
     print(f"[INFO] New connection from {address} (Authenticated as {username})")
 
     while True:
-        client_socket.settimeout(300)  # Set timeout for 300 seconds
+        client_socket.settimeout(50)  # Set timeout for 300 seconds
 
         try:
             request = client_socket.recv(4096).decode("utf-8", errors="replace")
