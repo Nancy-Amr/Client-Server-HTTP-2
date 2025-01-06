@@ -46,7 +46,7 @@ def decompress_headers(encoded_headers):
 
 # Authentication logic
 def authenticate_user(client_socket):
-    """Simple authentication logic with retry on failure."""
+    
     client_socket.send(b"Welcome! Please authenticate.\n")
 
     while True:
@@ -64,37 +64,25 @@ def authenticate_user(client_socket):
                     headers = HTTP_RESPONSES[401] + f"Content-Length: {len(response_body)}\r\nContent-Type: text/plain\r\n\r\n"
                     client_socket.send(headers.encode("utf-8") + response_body.encode("utf-8"))
                     client_socket.send(b"Please try again.\n")
-            else:
-                client_socket.send(b"Invalid input. Please use the format username:password.\n")
-        
-        except ValueError:
-            client_socket.send(b"Invalid input format. Please use the format username:password.\n")
-        
-        except ConnectionResetError:
-            print("[ERROR] Client disconnected unexpectedly.")
-            break
-
         except Exception as e:
             print(f"[ERROR] An error occurred during authentication: {e}")
             break
-
     return None
 
 def authentication_server(host="127.0.0.1", auth_port=9090, http_port=8080):
-    """Starts the authentication server."""
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)                                                              
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)                                                                  
     server_socket.bind((host, auth_port))
     server_socket.listen(5)
     print(f"[INFO] Authentication server started on {host}:{auth_port}")
 
     try:
         while True:
-            client_socket, address = server_socket.accept()
-            print(f"[INFO] Connection received from {address}")
             username = None
 
-            while username is None:  # Retry authentication until successful
+            while username is None:  
+                client_socket, address = server_socket.accept()
                 username = authenticate_user(client_socket)
 
                 if username:
@@ -104,11 +92,8 @@ def authentication_server(host="127.0.0.1", auth_port=9090, http_port=8080):
                     http_thread = threading.Thread(target=start_http_server, args=(host, http_port, username))
                     http_thread.start()
                 else:
-                    print(f"[INFO] Authentication failed for {address}. Closing connection.")
+                    print(f"[INFO] Authentication failed.")
                     break
-
-    except KeyboardInterrupt:
-        print("[INFO] Authentication server shutting down...")
     finally:
         server_socket.close()
         print("[INFO] Server socket closed.")
@@ -406,9 +391,7 @@ def handle_head(path):
 
 # Client-side simulation
 def authenticate_to_server(auth_host, auth_port):
-    """
-    Handles user authentication with the server.
-    """
+    
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as auth_socket:
             auth_socket.connect((auth_host, auth_port))
