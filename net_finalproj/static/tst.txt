@@ -1,0 +1,81 @@
+#include <iostream>
+using namespace std;
+
+
+
+struct sub{
+	int sub_array[];
+	int sum;
+	int size;
+};
+int max(int a[],int b, int c[], int d){
+	int L_max =0;
+	for(int i =0; i<b;i++){
+		L_max+= a[i];
+	}
+	int R_max =0;
+	for(int i =0; i<d;i++){
+			L_max+= a[i];
+		}
+}
+int tre_max(int a[], int a_size,int b[], int b_size , int c[], int c_size){
+	return max(max(a,a_size, b, b_size),c, c_size);
+}
+
+sub maxCross(int arr[], int p, int m, int q){
+	int leftmax = 0;
+	int lm = -1;
+	for(int i=m; i>=p;i--){
+
+		if(leftmax +arr[i]>leftmax){
+			lm = i;
+		}
+		leftmax+=arr[i];
+	}
+	int rightmax = 0;
+	int rm = -1;
+	for(int i=m+1; i<=q;i++){
+
+			if(rightmax +arr[i]>rightmax){
+				rm = i;
+			}
+			rightmax+=arr[i];
+		}
+	int subArr[];
+	int j=0;
+	int sum=0;
+	
+	for(int i=lm; i<=rm;i++){
+		subArr[j] = arr[i];
+		sum+=arr[i];
+		j++;
+
+	}
+	return {subArr,sum, j-1};
+}
+
+int maxArray(int arr[], int p, int q){
+	if(p<q){
+		return -1;
+	}
+	if(p==q){
+		return arr[0];
+	}
+	int m = (p+q)/2;
+	int left = maxArray(arr,p,m-1);
+	int right = maxArray(arr,m+1,q);
+
+
+	sub c = maxCross(arr,p,m,q);
+	int sum = c.sum;
+
+
+
+}
+int main() {
+    int arr[] = {3,-6,8,-3,-3,6,-3,5,-3,2};
+    int n = sizeof(arr) / sizeof(arr[0]);
+
+    cout << "Maximum contiguous sum is " << max_sum;
+    return 0;
+}
