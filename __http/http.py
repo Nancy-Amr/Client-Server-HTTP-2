@@ -24,51 +24,18 @@ hpack_encoder = Encoder()
 hpack_decoder = Decoder()
 
 def compress_headers(headers_dict):
-    """
-    Compress headers using HPACK.
-    :param headers_dict: Dictionary of HTTP headers.
-    :return: Compressed binary representation of headers.
-    """
+    
     headers_list = [(key, value) for key, value in headers_dict.items()]
     return hpack_encoder.encode(headers_list)
 
 def decompress_headers(encoded_headers):
-    """
-    Decompress headers using HPACK.
-    :param encoded_headers: Compressed binary headers.
-    :return: Dictionary of decompressed headers.
-    """
+    
     headers = hpack_decoder.decode(encoded_headers)
     return {key.decode(): value.decode() for key, value in headers}
 
-# Example usage
-def handle_client_with_hpack(client_socket):
-    try:
-        # Receive and decode headers
-        request = client_socket.recv(4096)
-        decompressed_headers = decompress_headers(request)
-        print("[DECOMPRESSED HEADERS]:", decompressed_headers)
 
-        # Prepare a response
-        headers = {
-            ":status": "200",
-            "content-type": "text/plain",
-            "content-length": "12",
-        }
-        compressed_response_headers = compress_headers(headers)
-
-        # Send compressed response headers followed by the body
-        client_socket.send(compressed_response_headers + b"Hello World!")
-    except Exception as e:
-        print("[ERROR] HPACK handling failed:", e)
-    finally:
-        client_socket.close()
-
-
-
-# Authentication logic
 def authenticate_user(client_socket):
-    """Simple authentication logic with retry on failure."""
+    
     client_socket.send(b"Welcome! Please authenticate.\n")
 
     while True:
@@ -86,37 +53,25 @@ def authenticate_user(client_socket):
                     headers = HTTP_RESPONSES[401] + f"Content-Length: {len(response_body)}\r\nContent-Type: text/plain\r\n\r\n"
                     client_socket.send(headers.encode("utf-8") + response_body.encode("utf-8"))
                     client_socket.send(b"Please try again.\n")
-            else:
-                client_socket.send(b"Invalid input. Please use the format username:password.\n")
-        
-        except ValueError:
-            client_socket.send(b"Invalid input format. Please use the format username:password.\n")
-        
-        except ConnectionResetError:
-            print("[ERROR] Client disconnected unexpectedly.")
-            break
-
         except Exception as e:
             print(f"[ERROR] An error occurred during authentication: {e}")
             break
-
     return None
 
 def authentication_server(host="127.0.0.1", auth_port=9090, http_port=8080):
-    """Starts the authentication server."""
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)                                                              
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)                                                                  
     server_socket.bind((host, auth_port))
     server_socket.listen(5)
     print(f"[INFO] Authentication server started on {host}:{auth_port}")
 
     try:
         while True:
-            client_socket, address = server_socket.accept()
-            print(f"[INFO] Connection received from {address}")
             username = None
 
-            while username is None:  # Retry authentication until successful
+            while username is None:  
+                client_socket, address = server_socket.accept()
                 username = authenticate_user(client_socket)
 
                 if username:
@@ -126,17 +81,14 @@ def authentication_server(host="127.0.0.1", auth_port=9090, http_port=8080):
                     http_thread = threading.Thread(target=start_http_server, args=(host, http_port, username))
                     http_thread.start()
                 else:
-                    print(f"[INFO] Authentication failed for {address}. Closing connection.")
+                    print(f"[INFO] Authentication failed.")
                     break
-
-    except KeyboardInterrupt:
-        print("[INFO] Authentication server shutting down...")
     finally:
         server_socket.close()
         print("[INFO] Server socket closed.")
 
 def start_http_server(host, port, username):
-    """Starts the HTTP server for an authenticated user."""
+    
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((host, port))
@@ -163,7 +115,7 @@ def handle_client(client_socket, address, username=None):
     print(f"[INFO] New connection from {address} (Authenticated as {username})")
 
     while True:
-        client_socket.settimeout(50)  # Set timeout for 300 seconds
+        client_socket.settimeout(30)  # Set timeout for 300 seconds
 
         try:
             request = client_socket.recv(4096).decode("utf-8", errors="replace")
@@ -279,7 +231,6 @@ def handle_post(path, body):
 
 
 def handle_put(path, headers, body):
-    """Handle PUT requests for file uploads."""
     try:
         # Extract the filename from the path
         filename = os.path.basename(path.lstrip("/"))
@@ -304,8 +255,6 @@ def handle_put(path, headers, body):
 
 
 
-
-
 def calculate_file_hash(file_path, hash_func=hashlib.sha256):
     hash_obj = hash_func()
     with open(file_path, 'rb') as f:
@@ -315,7 +264,7 @@ def calculate_file_hash(file_path, hash_func=hashlib.sha256):
 
 
 def handle_file_upload(path, body):
-    """Handle file upload requests from both web and CLI."""
+    
     save_path = "static"
     os.makedirs(save_path, exist_ok=True)
 
@@ -368,7 +317,7 @@ def handle_file_upload(path, body):
         return headers + response_body
 
 def handle_delete(path):
-    """Handle DELETE requests for file deletion."""
+    
     try:
         # Extract the filename from the path
         filename = os.path.basename(path.lstrip("/"))
@@ -397,9 +346,7 @@ def handle_delete(path):
 
 
 def handle_head(path):
-    """
-    Handles HTTP HEAD requests and returns only the headers for the requested resource.
-    """
+    
     if path == "/":
         path = "/index.html"  # Default to index.html if the path is root
 
@@ -428,9 +375,7 @@ def handle_head(path):
 
 # Client-side simulation
 def authenticate_to_server(auth_host, auth_port):
-    """
-    Handles user authentication with the server.
-    """
+    
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as auth_socket:
             auth_socket.connect((auth_host, auth_port))
