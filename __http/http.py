@@ -24,16 +24,27 @@ hpack_encoder = Encoder()
 hpack_decoder = Decoder()
 
 def compress_headers(headers_dict):
-    
+    """
+    Compress headers using HPACK.
+    :param headers_dict: Dictionary of HTTP headers.
+    :return: Compressed binary representation of headers.
+    """
     headers_list = [(key, value) for key, value in headers_dict.items()]
     return hpack_encoder.encode(headers_list)
 
 def decompress_headers(encoded_headers):
-    
+    """
+    Decompress headers using HPACK.
+    :param encoded_headers: Compressed binary headers.
+    :return: Dictionary of decompressed headers.
+    """
     headers = hpack_decoder.decode(encoded_headers)
     return {key.decode(): value.decode() for key, value in headers}
 
 
+
+
+# Authentication logic
 def authenticate_user(client_socket):
     
     client_socket.send(b"Welcome! Please authenticate.\n")
@@ -88,7 +99,7 @@ def authentication_server(host="127.0.0.1", auth_port=9090, http_port=8080):
         print("[INFO] Server socket closed.")
 
 def start_http_server(host, port, username):
-    
+    """Starts the HTTP server for an authenticated user."""
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((host, port))
@@ -107,23 +118,52 @@ def start_http_server(host, port, username):
 
 
 PUSH_MANIFEST = {
-    "/index.html": ["/style.css", "/script.js"],
-    "/about.html": ["/about-style.css", "/about-image.jpg"],
+    "/index.html": ["/styles.css", "/script.js"]
+   
 }
 # Handling different HTTP methods
+
+
+open_connections = set()
+lock = threading.Lock()
+
+def add_connection(address):
+    """Add a new connection if not already tracked."""
+    with lock:
+        open_connections.add(address)
+        print(f"[INFO] Connection added. Open connections: {len(open_connections)}")
+
+def remove_connection(address):
+    """Remove a connection."""
+    with lock:
+        if address in open_connections:
+            open_connections.remove(address)
+            print(f"[INFO] Connection removed. Open connections: {len(open_connections)}")
+
+
 def handle_client(client_socket, address, username=None):
     print(f"[INFO] New connection from {address} (Authenticated as {username})")
 
+    add_connection(address)
+
+    
+
+    
+    
+
     while True:
-        client_socket.settimeout(30)  # Set timeout for 300 seconds
+        client_socket.settimeout(300) 
+        
 
         try:
             request = client_socket.recv(4096).decode("utf-8", errors="replace")
             if not request:
                 break
+            response = ""
 
             # Log the formatted request
             print(f"[REQUEST FROM {address}]\n{request}")
+            
 
             # Process and respond to the request
             request_line = request.split("\r\n")[0]
@@ -164,6 +204,9 @@ def handle_client(client_socket, address, username=None):
             print(f"[INFO] Connection timed out for {address}. Closing connection.")
             timeout_response = HTTP_RESPONSES[408] + "Connection Timeout\r\n\r\n"
             client_socket.send(timeout_response.encode("utf-8"))
+            remove_connection(address)
+            
+            
             client_socket.close()
             return
         except Exception as e:
@@ -171,49 +214,41 @@ def handle_client(client_socket, address, username=None):
             break
 
     client_socket.close()
+    remove_connection(address)
 
 
 
 
 # Handling HTTP methods
 def handle_get(path):
-    # Default to index.html if the root path is requested
     if path == "/":
         path = "/index.html"
 
     file_path = os.path.join(ROOT_DIR, path.lstrip("/"))
+    content_types = {
+        ".css": "text/css",
+        ".js": "application/javascript",
+        ".html": "text/html",
+    }
+    file_extension = os.path.splitext(path)[1]
+    content_type = content_types.get(file_extension, "application/octet-stream")
 
-    # Determine the content type based on the file extension
-    if path.endswith(".css"):
-        content_type = "text/css"
-    elif path.endswith(".js"):
-        content_type = "application/javascript"
-    elif path.endswith(".html"):
-        content_type = "text/html"
-    else:
-        content_type = "application/octet-stream"  # Default for binary files (like images, etc.)
-
-    # Check if the requested file exists and is a file (not a directory)
     if os.path.exists(file_path) and os.path.isfile(file_path):
         try:
-            # Open and read the file
             with open(file_path, "r") as file:
                 content = file.read()
-
-            # Send the file with the correct content type and headers
             headers = HTTP_RESPONSES[200] + f"Content-Length: {len(content)}\r\nContent-Type: {content_type}\r\n\r\n"
             return headers + content
-
         except Exception as e:
-            # Handle unexpected errors while reading the file
             content = f"Error reading file: {e}"
             headers = HTTP_RESPONSES[500] + f"Content-Length: {len(content)}\r\nContent-Type: text/plain\r\n\r\n"
             return headers + content
     else:
-        # If the file doesn't exist, return a 404 error
         content = "404 Not Found"
         headers = HTTP_RESPONSES[404] + f"Content-Length: {len(content)}\r\nContent-Type: text/plain\r\n\r\n"
         return headers + content
+
+
     
 def handle_post(path, body):
     post_data = body
@@ -231,6 +266,7 @@ def handle_post(path, body):
 
 
 def handle_put(path, headers, body):
+    """Handle PUT requests for file uploads."""
     try:
         # Extract the filename from the path
         filename = os.path.basename(path.lstrip("/"))
@@ -255,6 +291,8 @@ def handle_put(path, headers, body):
 
 
 
+
+
 def calculate_file_hash(file_path, hash_func=hashlib.sha256):
     hash_obj = hash_func()
     with open(file_path, 'rb') as f:
@@ -264,7 +302,7 @@ def calculate_file_hash(file_path, hash_func=hashlib.sha256):
 
 
 def handle_file_upload(path, body):
-    
+    """Handle file upload requests from both web and CLI."""
     save_path = "static"
     os.makedirs(save_path, exist_ok=True)
 
@@ -317,7 +355,7 @@ def handle_file_upload(path, body):
         return headers + response_body
 
 def handle_delete(path):
-    
+    """Handle DELETE requests for file deletion."""
     try:
         # Extract the filename from the path
         filename = os.path.basename(path.lstrip("/"))
@@ -346,7 +384,9 @@ def handle_delete(path):
 
 
 def handle_head(path):
-    
+    """
+    Handles HTTP HEAD requests and returns only the headers for the requested resource.
+    """
     if path == "/":
         path = "/index.html"  # Default to index.html if the path is root
 
@@ -398,119 +438,271 @@ def authenticate_to_server(auth_host, auth_port):
     except Exception as e:
         print(f"[ERROR] Authentication error: {e}")
         return False
-    
+
+
+
+
+
+
 def cli_interface(auth_host="127.0.0.1", auth_port=9090, http_host="127.0.0.1", http_port=8080):
-    """Command-line interface for interacting with the server."""
+    """Complete CLI interface with web browser emulation and reconnection support."""
     if not authenticate_to_server(auth_host, auth_port):
         print("[ERROR] Failed to authenticate. Exiting CLI.")
         return
 
-    print("[INFO] CLI interface ready. Type 'help' for available commands.\n")
+    print("[INFO] CLI interface ready. Type 'connect' to open a new connection or 'help' for commands.\n")
+    cli_socket = None
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as cli_socket:
+    while True:
         try:
-            cli_socket.connect((http_host, http_port))
-
-            while True:
-                command = input("CLI> ").strip()
-
-                if command.lower() == "exit":
+            if not cli_socket:
+                command = input("CLI> ").strip().lower()
+                if command == "exit":
                     print("[INFO] Exiting CLI...")
-                    break
-                elif command.lower() == "help":
-                    print("""
-[CLI COMMANDS]
-- GET <path>       : Perform an HTTP GET request (e.g., GET /index.html)
-- POST <path> <data>: Send data with POST (e.g., POST /submit "data")
-- PUT <file>       : Upload a local file to the server's static folder (e.g., PUT file.txt)
-- DELETE <path>    : Delete a resource (e.g., DELETE /resource)
-- HEAD <path>      : Retrieve headers for a resource (e.g., HEAD /index.html)
-- OPTIONS <path>   : Get supported HTTP methods (e.g., OPTIONS /index.html)
-- PATCH <path> <data>: Apply partial updates to a resource (e.g., PATCH /resource "data")
-- exit            : Disconnect from the CLI
+                    return
+                elif command == "connect":
+                    cli_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    cli_socket.settimeout(300)  # 5 minute timeout
+                    cli_socket.connect((http_host, http_port))
+                    print("[INFO] Connected to the server.")
+                    continue
+                elif command == "help":
+                    print("""[CLI COMMANDS]
+- connect          : Open a new connection
+- GET <path>       : GET request (e.g., GET /)
+- POST             : Send name and email with POST
+- PUT <file>       : Upload a local file
+- DELETE <path>    : Delete a resource
+- HEAD <path>      : Get resource headers
+- exit             : Exit CLI
                     """)
                     continue
-
-                # Construct formatted HTTP request
-                if command.startswith(("GET", "POST", "DELETE", "HEAD", "OPTIONS", "PATCH")):
-                    method, path, *body = command.split(" ", 2)
-                    body = body[0] if body else ""
-                    
-                    # Common headers for all requests
-                    headers = [
-                        f"{method} {path} HTTP/1.1",
-                        f"Host: {http_host}:{http_port}",
-                        "User-Agent: CLI/1.0 (Python Custom Client)",
-                        "Accept: */*",
-                        "Accept-Language: en-US,en;q=0.9",
-                        "Accept-Encoding: gzip, deflate, br",
-                        "Connection: keep-alive",
-                        "Cache-Control: no-cache",
-                        "Pragma: no-cache",
-                        "Sec-Fetch-Dest: empty",
-                        "Sec-Fetch-Mode: cors",
-                        "Sec-Fetch-Site: same-origin",
-                        f"Content-Length: {len(body)}",
-                        f"Origin: http://{http_host}:{http_port}",
-                        f"Referer: http://{http_host}:{http_port}/"
-                    ]
-
-                    # Add method-specific headers
-                    if method == "POST" or method == "PATCH":
-                        headers.insert(-1, "Content-Type: application/x-www-form-urlencoded")
-                    elif method == "OPTIONS":
-                        headers.insert(-1, "Access-Control-Request-Method: POST, GET, OPTIONS")
-                        headers.insert(-1, "Access-Control-Request-Headers: content-type")
-
-                    request = "\r\n".join(headers) + "\r\n\r\n" + body
-
-                elif command.startswith("PUT"):
-                    parts = command.split(" ", 1)
-                    if len(parts) < 2:
-                        print("[ERROR] PUT requires a local file path (e.g., PUT file.txt).")
-                        continue
-                    local_file_path = parts[1]
-                    if not os.path.isfile(local_file_path):
-                        print(f"[ERROR] File '{local_file_path}' not found.")
-                        continue
-                    
-                    filename = os.path.basename(local_file_path)
-                    with open(local_file_path, "r") as f:
-                        file_content = f.read()
-
-                    headers = [
-                        f"PUT /{filename} HTTP/1.1",
-                        f"Host: {http_host}:{http_port}",
-                        "User-Agent: CLI/1.0 (Python Custom Client)",
-                        "Accept: */*",
-                        "Accept-Language: en-US,en;q=0.9",
-                        "Accept-Encoding: gzip, deflate, br",
-                        "Connection: keep-alive",
-                        "Cache-Control: no-cache",
-                        "Pragma: no-cache",
-                        "Sec-Fetch-Dest: empty",
-                        "Sec-Fetch-Mode: cors",
-                        "Sec-Fetch-Site: same-origin",
-                        "Content-Type: application/octet-stream",
-                        f"Content-Length: {len(file_content)}",
-                        f"Origin: http://{http_host}:{http_port}",
-                        f"Referer: http://{http_host}:{http_port}/",
-                        f"X-Filename: {filename}"
-                    ]
-
-                    request = "\r\n".join(headers) + "\r\n\r\n" + file_content
                 else:
-                    print("[ERROR] Unsupported command format.")
+                    print("[INFO] No active connection. Type 'connect' to open a new connection.")
                     continue
 
-                # Send the request without logging it (server will handle logging)
-                cli_socket.send(request.encode())
+            command = input("CLI> ").strip()
 
-                # Receive and display the response
+            if command.lower() == "exit":
+                print("[INFO] Exiting CLI...")
+                if cli_socket:
+                    cli_socket.close()
+                return
+            elif command.lower() == "help":
+                print("""[CLI COMMANDS]
+- connect          : Open a new connection
+- GET <path>       : GET request (e.g., GET /)
+- POST             : Send name and email with POST
+- PUT <file>       : Upload a local file
+- DELETE <path>    : Delete a resource
+- HEAD <path>      : Get resource headers
+- exit             : Exit CLI
+                    """)
+                continue
+            elif command.lower().startswith("get"):
+                parts = command.split(" ", 1)
+                path = parts[1] if len(parts) > 1 else "/"
+                
+                # Adjust Accept header based on resource type
+                accept_header = "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                if path.endswith('.css'):
+                    accept_header = "Accept: text/css,*/*;q=0.1"
+                elif path.endswith('.js'):
+                    accept_header = "Accept: application/javascript,*/*;q=0.1"
+                
+                headers = [
+                    f"GET {path} HTTP/1.1",
+                    f"Host: {http_host}:{http_port}",
+                    "User-Agent: CLI/1.0",
+                    accept_header,
+                    "Accept-Language: en-US,en;q=0.5",
+                    "Accept-Encoding: gzip, deflate, br, zstd",
+                    "Connection: keep-alive",
+                    "Upgrade-Insecure-Requests: 1",
+                    "Sec-Fetch-Dest: document",
+                    "Sec-Fetch-Mode: navigate",
+                    "Sec-Fetch-Site: none",
+                    "Sec-Fetch-User: ?1",
+                    "Priority: u=0, i"
+                ]
+                request = "\r\n".join(headers) + "\r\n\r\n"
+                cli_socket.send(request.encode())
+                
+                # Read response headers first
+                response_headers = ""
+                while "\r\n\r\n" not in response_headers:
+                    chunk = cli_socket.recv(1).decode()
+                    response_headers += chunk
+                
+                # Parse Content-Length
+                content_length = 0
+                for line in response_headers.split('\r\n'):
+                    if line.lower().startswith('content-length:'):
+                        content_length = int(line.split(':')[1].strip())
+                        break
+                
+                # Read response body
+                response_body = ""
+                bytes_received = 0
+                while bytes_received < content_length:
+                    chunk = cli_socket.recv(min(4096, content_length - bytes_received)).decode()
+                    response_body += chunk
+                    bytes_received += len(chunk)
+                
+                full_response = response_headers + response_body
+                print(f"\n[SERVER RESPONSE]\n{full_response}")
+                
+                # Handle related resources for index page
+                if path in ["/", "/index.html"]:
+                    for resource in ["/styles.css", "/script.js"]:
+                        print(f"\nLoading {resource}...")
+                        resource_accept = "Accept: text/css,*/*;q=0.1" if resource.endswith('.css') else "Accept: application/javascript,*/*;q=0.1"
+                        resource_headers = [
+                            f"GET {resource} HTTP/1.1",
+                            f"Host: {http_host}:{http_port}",
+                            "User-Agent: CLI/1.0",
+                            resource_accept,
+                            "Accept-Language: en-US,en;q=0.5",
+                            "Accept-Encoding: gzip, deflate, br, zstd",
+                            "Connection: keep-alive",
+                            f"Referer: http://{http_host}:{http_port}/",
+                            "Sec-Fetch-Dest: style" if resource.endswith('.css') else "Sec-Fetch-Dest: script",
+                            "Sec-Fetch-Mode: no-cors",
+                            "Sec-Fetch-Site: same-origin",
+                            "Priority: u=2"
+                        ]
+                        resource_request = "\r\n".join(resource_headers) + "\r\n\r\n"
+                        cli_socket.send(resource_request.encode())
+                        
+                        # Read resource response headers
+                        resource_response_headers = ""
+                        while "\r\n\r\n" not in resource_response_headers:
+                            chunk = cli_socket.recv(1).decode()
+                            resource_response_headers += chunk
+                        
+                        # Parse resource Content-Length
+                        resource_content_length = 0
+                        for line in resource_response_headers.split('\r\n'):
+                            if line.lower().startswith('content-length:'):
+                                resource_content_length = int(line.split(':')[1].strip())
+                                break
+                        
+                        # Read resource response body
+                        resource_response_body = ""
+                        resource_bytes_received = 0
+                        while resource_bytes_received < resource_content_length:
+                            chunk = cli_socket.recv(min(4096, resource_content_length - resource_bytes_received)).decode()
+                            resource_response_body += chunk
+                            resource_bytes_received += len(chunk)
+                        
+                        resource_full_response = resource_response_headers + resource_response_body
+                        print(f"\n[{resource.upper()} RESPONSE]\n{resource_full_response}")
+
+            elif command.lower().startswith("post"):
+                name = input("Enter name: ")
+                email = input("Enter email: ")
+                body = f"name={name}&email={email}"
+                
+                headers = [
+                    "POST /submit HTTP/1.1",
+                    f"Host: {http_host}:{http_port}",
+                    "User-Agent: CLI/1.0",
+                    "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "Content-Type: application/x-www-form-urlencoded",
+                    f"Content-Length: {len(body)}",
+                    "Connection: keep-alive"
+                ]
+                request = "\r\n".join(headers) + "\r\n\r\n" + body
+                cli_socket.send(request.encode())
                 response = cli_socket.recv(4096).decode()
                 print(f"\n[SERVER RESPONSE]\n{response}")
+
+            elif command.lower().startswith("put"):
+                parts = command.split(" ", 1)
+                if len(parts) < 2:
+                    print("[ERROR] PUT requires a file path")
+                    continue
+                
+                file_path = parts[1]
+                if not os.path.isfile(file_path):
+                    print(f"[ERROR] File not found: {file_path}")
+                    continue
+
+                with open(file_path, "r") as f:
+                    content = f.read()
+                
+                filename = os.path.basename(file_path)
+                headers = [
+                    f"PUT /{filename} HTTP/1.1",
+                    f"Host: {http_host}:{http_port}",
+                    "User-Agent: CLI/1.0",
+                    "Accept: */*",
+                    "Content-Type: application/octet-stream",
+                    f"Content-Length: {len(content)}",
+                    "Connection: keep-alive"
+                ]
+                request = "\r\n".join(headers) + "\r\n\r\n" + content
+                cli_socket.send(request.encode())
+                response = cli_socket.recv(4096).decode()
+                print(f"\n[SERVER RESPONSE]\n{response}")
+
+            elif command.lower().startswith("delete"):
+                parts = command.split(" ", 1)
+                if len(parts) < 2:
+                    print("[ERROR] DELETE requires a path")
+                    continue
+                
+                path = parts[1]
+                headers = [
+                    f"DELETE {path} HTTP/1.1",
+                    f"Host: {http_host}:{http_port}",
+                    "User-Agent: CLI/1.0",
+                    "Accept: */*",
+                    "Connection: keep-alive"
+                ]
+                request = "\r\n".join(headers) + "\r\n\r\n"
+                cli_socket.send(request.encode())
+                response = cli_socket.recv(4096).decode()
+                print(f"\n[SERVER RESPONSE]\n{response}")
+
+            elif command.lower().startswith("head"):
+                parts = command.split(" ", 1)
+                path = parts[1] if len(parts) > 1 else "/"
+                
+                headers = [
+                    f"HEAD {path} HTTP/1.1",
+                    f"Host: {http_host}:{http_port}",
+                    "User-Agent: CLI/1.0",
+                    "Accept: */*",
+                    "Connection: keep-alive"
+                ]
+                request = "\r\n".join(headers) + "\r\n\r\n"
+                cli_socket.send(request.encode())
+                response = cli_socket.recv(4096).decode()
+                print(f"\n[SERVER RESPONSE]\n{response}")
+
+            else:
+                print("[ERROR] Unknown command. Type 'help' for available commands.")
+
+        except socket.timeout:
+            print("[INFO] Connection timed out. Type 'connect' to open a new connection.")
+            if cli_socket:
+                cli_socket.close()
+            cli_socket = None
+            
+        except ConnectionResetError:
+            print("[INFO] Server closed the connection. Type 'connect' to open a new connection.")
+            if cli_socket:
+                cli_socket.close()
+            cli_socket = None
+           
         except Exception as e:
-            print(f"[ERROR] CLI connection error: {e}")
+            print(f"[ERROR] An error occurred: {e}")
+            if cli_socket:
+                cli_socket.close()
+            cli_socket = None
+            
+
 
 
 if __name__ == "__main__":
